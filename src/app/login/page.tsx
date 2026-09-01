@@ -19,11 +19,11 @@ export default function LoginPage() {
         <div className="grid" style={{ marginTop: 18 }}>
           <label>
             Email
-            <input className="input" name="email" type="email" defaultValue="admin@mellow.local" required style={{ width: "100%", marginTop: 6 }} />
+            <input className="input" name="email" type="email" required style={{ width: "100%", marginTop: 6 }} />
           </label>
           <label>
             Password
-            <input className="input" name="password" type="password" defaultValue="mellow123" required style={{ width: "100%", marginTop: 6 }} />
+            <input className="input" name="password" type="password" required style={{ width: "100%", marginTop: 6 }} />
           </label>
           {state?.error ? <p style={{ color: "var(--danger)", margin: 0 }}>{state.error}</p> : null}
           <button className="button" type="submit" disabled={pending}>
