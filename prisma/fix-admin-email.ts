@@ -1,0 +1,18 @@
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  await prisma.user.update({
+    where: { email: "mellow" },
+    data: { email: "mellow@mellow.local" },
+  });
+}
+
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (error) => {
+    console.error(error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
