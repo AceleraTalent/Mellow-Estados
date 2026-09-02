@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority } from "@prisma/client";
 import { ArrowRight, Plus } from "lucide-react";
 import { requireUser } from "@/server/auth";
 import { prisma } from "@/server/db";
@@ -9,7 +9,8 @@ import { formatDate } from "@/server/domain/dates";
 import { getStageHealth, getStageTiming } from "@/server/domain/health";
 import { taskCounts } from "@/server/domain/progress";
 import { HealthBadge, PriorityBadge, Progress, TaskStatusBadge } from "@/components/badges";
-import { advanceClientAction, createTaskAction, updateTaskStatusAction } from "@/app/actions";
+import { TaskCompleteCheckbox } from "@/components/tasks/task-complete-checkbox";
+import { advanceClientAction, createTaskAction } from "@/app/actions";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -82,7 +83,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   <th>Priority</th>
                   <th>Owner</th>
                   <th>Due</th>
-                  <th>Update</th>
+                  <th>Done</th>
                 </tr>
               </thead>
               <tbody>
@@ -95,12 +96,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     <td>{task.assignedUser?.name ?? task.assignedTeam?.name ?? "-"}</td>
                     <td>{formatDate(task.dueDate)}</td>
                     <td>
-                      <form action={async () => {
-                        "use server";
-                        await updateTaskStatusAction(task.id, task.status === TaskStatus.COMPLETED ? TaskStatus.PENDING : TaskStatus.COMPLETED);
-                      }}>
-                        <button className="button secondary" type="submit">{task.status === TaskStatus.COMPLETED ? "Reopen" : "Complete"}</button>
-                      </form>
+                      <TaskCompleteCheckbox taskId={task.id} status={task.status} />
                     </td>
                   </tr>
                 ))}
