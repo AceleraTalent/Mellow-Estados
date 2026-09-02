@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
 
-const COOKIE_NAME = process.env.AUTH_COOKIE_NAME ?? "mellow_session";
+const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "mellow_session";
 const SESSION_DAYS = 14;
 
 export async function getCurrentUser() {
