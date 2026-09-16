@@ -12,7 +12,15 @@ const SESSION_DAYS = 14;
 
 export async function getCurrentUser() {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  // Mellow is an internal, shared traffic board. It intentionally opens
+  // without a sign-in screen and operates with the configured admin profile.
+  if (!token) {
+    return prisma.user.findFirst({
+      where: { active: true, role: UserRole.ADMIN },
+      include: { team: true },
+      orderBy: { createdAt: "asc" },
+    });
+  }
 
   const session = await prisma.session.findUnique({
     where: { token },

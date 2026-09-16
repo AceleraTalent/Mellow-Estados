@@ -1,8 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Activity, Kanban, LayoutDashboard, ListChecks, LogOut, Settings, Users } from "lucide-react";
+import { Activity, Kanban, LayoutDashboard, ListChecks, Settings, Users } from "lucide-react";
 import { UserRole } from "@prisma/client";
-import { logoutAction } from "@/app/login/actions";
 import { requireUser } from "@/server/auth";
 
 const links = [
@@ -24,8 +23,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           <div className="brand-logo">
             <Image src="/mellow-logo.png" alt="Mellow & Banana" width={260} height={40} priority />
           </div>
-          <h1>Client Operations</h1>
-          <p>{user.name} · {user.role}</p>
+          <h1>Tráfico de proyectos</h1>
+          <p>Vista compartida de Mellow & Banana</p>
         </div>
         <nav className="nav">
           {links.map((link) => {
@@ -42,11 +41,6 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           ) : null}
         </nav>
-        <form action={logoutAction} style={{ marginTop: "auto" }}>
-          <button className="logout-button" type="submit">
-            <LogOut size={18} /> Logout
-          </button>
-        </form>
       </aside>
       <main className="main">{children}</main>
     </div>
