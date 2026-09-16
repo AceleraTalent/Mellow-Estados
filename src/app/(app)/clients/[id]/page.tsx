@@ -10,7 +10,8 @@ import { getStageHealth, getStageTiming } from "@/server/domain/health";
 import { taskCounts } from "@/server/domain/progress";
 import { HealthBadge, PriorityBadge, Progress, TaskStatusBadge } from "@/components/badges";
 import { TaskCompleteCheckbox } from "@/components/tasks/task-complete-checkbox";
-import { advanceClientAction, createTaskAction } from "@/app/actions";
+import { TrafficGantt } from "@/components/clients/traffic-gantt";
+import { advanceClientAction, createTaskAction, updateStageDelayReasonAction } from "@/app/actions";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -31,7 +32,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         durationDays: current.durationDaysSnapshot,
       })
     : null;
-  const health = getStageHealth({ clientStatus: client.status, stageStatus: current?.status, plannedEndDate: current?.plannedEndDate });
+  const health = getStageHealth({ clientStatus: client.status, stageStatus: current?.status, plannedEndDate: current?.plannedEndDate, hasBlockedTasks: (current?.tasks ?? []).some((task) => task.status === "BLOCKED") });
 
   return (
     <>
@@ -51,24 +52,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <div className="panel metric"><span className="muted">Health</span><strong style={{ fontSize: 18 }}><HealthBadge value={health} /></strong></div>
       </section>
 
-      <section className="panel panel-pad" style={{ marginTop: 16 }}>
-        <h3>Timeline</h3>
-        <div className="timeline">
-          {client.stages.map((clientStage) => {
-            const counts = taskCounts(clientStage.tasks);
-            const stageHealth = getStageHealth({ clientStatus: client.status, stageStatus: clientStage.status, plannedEndDate: clientStage.plannedEndDate });
-            return (
-              <div className={`timeline-card ${clientStage.id === current?.id ? "active" : ""}`} key={clientStage.id}>
-                <strong>{clientStage.position}. {clientStage.stage.name}</strong>
-                <p className="muted">{formatDate(clientStage.plannedStartDate)} - {formatDate(clientStage.plannedEndDate)}</p>
-                <p className="muted">Actual: {formatDate(clientStage.actualStartDate)} - {formatDate(clientStage.actualEndDate)}</p>
-                <Progress value={counts.progress} />
-                <div style={{ marginTop: 8 }}><HealthBadge value={stageHealth} /></div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <div style={{ marginTop: 16 }}><TrafficGantt stages={client.stages} /></div>
 
       <section className="two-col" style={{ marginTop: 16 }}>
         <div className="panel panel-pad">
@@ -122,6 +106,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   </label>
                   <button className="button warning" type="submit"><ArrowRight size={16} /> Complete stage</button>
                 </form>
+                <form action={updateStageDelayReasonAction} className="grid" style={{ marginTop: 14 }}>
+                  <input type="hidden" name="clientId" value={client.id} />
+                  <input type="hidden" name="clientStageId" value={current.id} />
+                  <input className="input" name="delayReason" defaultValue={current.delayReason ?? ""} placeholder="Motivo de retraso / bloqueo" />
+                  <button className="button secondary" type="submit">Guardar motivo</button>
+                </form>
               </>
             ) : null}
           </div>
@@ -147,6 +137,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 {teams.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
               </select>
               <input className="input" name="dueDate" type="date" />
+              <input className="input" name="estimatedDurationDays" type="number" min="1" defaultValue="1" aria-label="Duración estimada en días" />
+              <input className="input" name="cycle" type="number" min="1" placeholder="Ciclo / ronda (opcional)" />
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" name="blocksPhaseCompletion" /> Bloquea el cierre de fase</label>
               <button className="button" type="submit"><Plus size={16} /> Create task</button>
             </form>
           </div>

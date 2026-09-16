@@ -2,7 +2,7 @@ import { TaskPriority, TaskStatus } from "@prisma/client";
 
 export function HealthBadge({ value }: { value: string }) {
   const className =
-    value === "Delayed" ? "delayed" : value === "Due soon" ? "due-soon" : value === "Completed" ? "completed" : "on-track";
+    value === "Delayed" || value === "Blocked" ? "delayed" : value === "Due soon" ? "due-soon" : value === "Completed" ? "completed" : "on-track";
   return <span className={`badge ${className}`}>{value}</span>;
 }
 

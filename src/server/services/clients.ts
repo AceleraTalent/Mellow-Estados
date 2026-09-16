@@ -58,6 +58,7 @@ export async function getClientList(user: { id: string; role: UserRole; teamId: 
       clientStatus: client.status,
       stageStatus: current?.status,
       plannedEndDate: current?.plannedEndDate,
+      hasBlockedTasks: (current?.tasks ?? []).some((task) => task.status === TaskStatus.BLOCKED),
     });
     const timing = getStageTiming({
       actualStartDate: current?.actualStartDate,
@@ -180,6 +181,8 @@ export async function createClientWithTimeline(input: {
           assignedTeamId: template.defaultAssignedTeamId ?? input.teamId,
           startDate: new Date(clientStage.plannedStartDate.getTime() + template.startOffsetDays * 24 * 60 * 60 * 1000),
           dueDate: new Date(clientStage.plannedStartDate.getTime() + template.dueOffsetDays * 24 * 60 * 60 * 1000),
+          estimatedDurationDays: template.estimatedDurationDays,
+          blocksPhaseCompletion: template.blocksPhaseCompletion,
           sortOrder: template.sortOrder,
           createdById: input.actorId,
         },
@@ -220,9 +223,9 @@ export async function advanceClientStage(input: { actorId: string; clientId: str
         ? client.stages.find((stage) => stage.id === input.targetClientStageId)
         : client.stages.find((stage) => stage.position === current.position + 1);
 
-    const incomplete = current.tasks.filter((task) => task.status !== TaskStatus.COMPLETED);
-    if (incomplete.length > 0 && !input.confirmPendingTasks) {
-      return { needsConfirmation: true, pendingCount: incomplete.length, clientId: client.id };
+    const blocking = current.tasks.filter((task) => task.blocksPhaseCompletion && task.status !== TaskStatus.COMPLETED);
+    if (blocking.length > 0 && !input.confirmPendingTasks) {
+      return { needsConfirmation: true, pendingCount: blocking.length, clientId: client.id };
     }
 
     const now = new Date();
@@ -231,6 +234,48 @@ export async function advanceClientStage(input: { actorId: string; clientId: str
       where: { id: current.id },
       data: { status: ClientStageStatus.COMPLETED, actualEndDate: now, completedAt: now },
     });
+
+    // Approval starts Vinculación and Entrevistas together. Both are gates for
+    // the kick off; the current pointer moves through the open parallel work.
+    if (current.position === 1) {
+      const parallel = client.stages.filter((stage) => stage.stage.parallelGroup === "inicio");
+      await Promise.all(parallel.map((stage) => tx.clientStage.update({ where: { id: stage.id }, data: { status: ClientStageStatus.ACTIVE, actualStartDate: now } })));
+      await tx.client.update({ where: { id: client.id }, data: { currentClientStageId: parallel[0]?.id } });
+      return { advanced: true, clientId: client.id };
+    }
+
+    if (current.stage.parallelGroup === "inicio") {
+      const counterpart = client.stages.find((stage) => stage.id !== current.id && stage.stage.parallelGroup === "inicio");
+      if (counterpart?.status !== ClientStageStatus.COMPLETED) {
+        await tx.client.update({ where: { id: client.id }, data: { currentClientStageId: counterpart?.id } });
+        return { advanced: true, clientId: client.id };
+      }
+      const kickoff = client.stages.find((stage) => stage.position === 4);
+      if (kickoff) {
+        await tx.clientStage.update({ where: { id: kickoff.id }, data: { status: ClientStageStatus.ACTIVE, actualStartDate: now, plannedStartDate: now, plannedEndDate: new Date(now.getTime() + kickoff.durationDaysSnapshot * 86_400_000) } });
+        await tx.client.update({ where: { id: client.id }, data: { currentClientStageId: kickoff.id } });
+        return { advanced: true, clientId: client.id };
+      }
+    }
+
+    // The next production phase is planned from the real close of this one.
+    // This preserves the traffic team's single source of truth when a delivery slips.
+    if (next && next.position === current.position + 1) {
+      const newStart = now;
+      const newEnd = new Date(newStart.getTime() + next.durationDaysSnapshot * 24 * 60 * 60 * 1000);
+      const oldStart = next.plannedStartDate;
+      await tx.clientStage.update({ where: { id: next.id }, data: { plannedStartDate: newStart, plannedEndDate: newEnd } });
+      const taskRows = await tx.task.findMany({ where: { clientStageId: next.id, archivedAt: null } });
+      for (const task of taskRows) {
+        await tx.task.update({
+          where: { id: task.id },
+          data: {
+            startDate: task.startDate ? new Date(task.startDate.getTime() + newStart.getTime() - oldStart.getTime()) : null,
+            dueDate: task.dueDate ? new Date(task.dueDate.getTime() + newStart.getTime() - oldStart.getTime()) : null,
+          },
+        });
+      }
+    }
 
     if (!next) {
       await tx.client.update({

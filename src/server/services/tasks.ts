@@ -66,6 +66,9 @@ export async function createTask(input: {
   assignedUserId?: string | null;
   assignedTeamId?: string | null;
   dueDate?: Date | null;
+  estimatedDurationDays?: number;
+  blocksPhaseCompletion?: boolean;
+  cycle?: number | null;
 }) {
   const task = await prisma.$transaction(async (tx) => {
     const lastTask = await tx.task.findFirst({
@@ -83,6 +86,9 @@ export async function createTask(input: {
         assignedUserId: input.assignedUserId,
         assignedTeamId: input.assignedTeamId,
         dueDate: input.dueDate,
+        estimatedDurationDays: input.estimatedDurationDays ?? 1,
+        blocksPhaseCompletion: input.blocksPhaseCompletion ?? false,
+        cycle: input.cycle,
         sortOrder: (lastTask?.sortOrder ?? 0) + 10,
         createdById: input.actorId,
       },

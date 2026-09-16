@@ -4,6 +4,8 @@ import { TaskPriority, TaskStatus, UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireUser } from "@/server/auth";
 import { createClientWithTimeline, advanceClientStage } from "@/server/services/clients";
+import { prisma } from "@/server/db";
+import { revalidatePath } from "next/cache";
 import { createTask, moveTask, updateTask } from "@/server/services/tasks";
 
 function stringOrNull(value: FormDataEntryValue | null) {
@@ -59,6 +61,9 @@ export async function createTaskAction(formData: FormData) {
     assignedUserId: stringOrNull(formData.get("assignedUserId")),
     assignedTeamId: stringOrNull(formData.get("assignedTeamId")),
     dueDate: stringOrNull(formData.get("dueDate")) ? new Date(String(formData.get("dueDate"))) : null,
+    estimatedDurationDays: Number(formData.get("estimatedDurationDays") ?? 1),
+    blocksPhaseCompletion: formData.get("blocksPhaseCompletion") === "on",
+    cycle: stringOrNull(formData.get("cycle")) ? Number(formData.get("cycle")) : null,
   });
 }
 
@@ -70,6 +75,16 @@ export async function updateTaskStatusAction(taskId: string, status: TaskStatus)
 export async function moveTaskAction(taskId: string, status: TaskStatus) {
   const user = await requireUser();
   await moveTask({ actor: { id: user.id, role: user.role, teamId: user.teamId }, taskId, status });
+}
+
+export async function updateStageDelayReasonAction(formData: FormData) {
+  await requireAdmin();
+  const clientId = String(formData.get("clientId"));
+  const clientStageId = String(formData.get("clientStageId"));
+  const delayReason = stringOrNull(formData.get("delayReason"));
+  await prisma.clientStage.update({ where: { id: clientStageId }, data: { delayReason } });
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath("/clients");
 }
 
 export async function requireAdminRole() {

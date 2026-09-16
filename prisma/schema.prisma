@@ -22,6 +22,7 @@ enum ClientStatus {
 enum ClientStageStatus {
   NOT_STARTED
   ACTIVE
+  BLOCKED
   COMPLETED
   PAUSED
 }
@@ -103,6 +104,7 @@ model Stage {
   description         String?
   position            Int
   defaultDurationDays Int
+  parallelGroup       String?
   active              Boolean        @default(true)
   clientStages        ClientStage[]
   taskTemplates       TaskTemplate[]
@@ -154,6 +156,7 @@ model ClientStage {
   actualStartDate      DateTime?
   actualEndDate        DateTime?
   status               ClientStageStatus @default(NOT_STARTED)
+  delayReason          String?
   durationDaysSnapshot Int
   completedAt          DateTime?
   tasks                Task[]
@@ -180,6 +183,8 @@ model TaskTemplate {
   defaultAssignedTeam   Team?        @relation(fields: [defaultAssignedTeamId], references: [id])
   startOffsetDays       Int          @default(0)
   dueOffsetDays         Int          @default(3)
+  estimatedDurationDays Int          @default(1)
+  blocksPhaseCompletion Boolean      @default(false)
   sortOrder             Int          @default(0)
   active                Boolean      @default(true)
   createdAt             DateTime     @default(now())
@@ -205,6 +210,9 @@ model Task {
   assignedTeam   Team?        @relation(fields: [assignedTeamId], references: [id])
   startDate      DateTime?
   dueDate        DateTime?
+  estimatedDurationDays Int          @default(1)
+  blocksPhaseCompletion Boolean      @default(false)
+  cycle          Int?
   completedAt    DateTime?
   sortOrder      Int          @default(0)
   createdById    String?

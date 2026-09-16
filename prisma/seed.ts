@@ -27,41 +27,48 @@ async function main() {
   await prisma.team.deleteMany();
 
   const [operations, design, commercial] = await Promise.all([
-    prisma.team.create({ data: { name: "Operations", description: "Delivery and client operations" } }),
-    prisma.team.create({ data: { name: "Design", description: "Creative and asset preparation" } }),
-    prisma.team.create({ data: { name: "Commercial", description: "Client-facing commercial work" } }),
+    prisma.team.create({ data: { name: "Operaciones", description: "Vinculación y coordinación de proyectos" } }),
+    prisma.team.create({ data: { name: "Diseño", description: "Diseño y artes finales" } }),
+    prisma.team.create({ data: { name: "Comercial", description: "Relación comercial con clientes" } }),
   ]);
 
   const passwordHash = await bcrypt.hash("mellow123", 12);
 
-  const [admin, laura, juan, sofia, camila] = await Promise.all([
+  const [admin, carlos, victor, yudi, isabel, lina] = await Promise.all([
     prisma.user.create({
       data: { name: "Admin Mellow", email: "admin@mellow.local", passwordHash, role: UserRole.ADMIN, teamId: operations.id },
     }),
     prisma.user.create({
-      data: { name: "Laura Perez", email: "laura@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: operations.id },
+      data: { name: "Carlos", email: "carlos@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: commercial.id },
     }),
     prisma.user.create({
-      data: { name: "Juan Rojas", email: "juan@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: design.id },
+      data: { name: "Víctor", email: "victor@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: design.id },
     }),
     prisma.user.create({
-      data: { name: "Sofia Marin", email: "sofia@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: commercial.id },
+      data: { name: "Yudi", email: "yudi@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: operations.id },
     }),
     prisma.user.create({
-      data: { name: "Camila Torres", email: "camila@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: operations.id },
+      data: { name: "Isabel", email: "isabel@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: operations.id },
+    }),
+    prisma.user.create({
+      data: { name: "Lina", email: "lina@mellow.local", passwordHash, role: UserRole.MEMBER, teamId: commercial.id },
     }),
   ]);
 
   const stageData = [
     {
-      name: "Entrevistas & Propuesta de Valor",
-      description: "Entrevistas iniciales y definicion de propuesta de valor",
+      name: "Comercial",
+      description: "Credenciales, propuesta de precio y aprobación del cliente",
       position: 1,
-      defaultDurationDays: 14,
+      defaultDurationDays: 5,
     },
-    { name: "Landscape", description: "Mapeo competitivo, referentes y oportunidades de posicionamiento", position: 2, defaultDurationDays: 30 },
-    { name: "Brand Strategy", description: "Estrategia de marca, narrativa, arquitectura y direccion creativa", position: 3, defaultDurationDays: 30 },
-    { name: "Brand Design", description: "Sistema visual, aplicaciones de marca y entrega final", position: 4, defaultDurationDays: 21 },
+    { name: "Vinculación", description: "Documentos y primera factura", position: 2, defaultDurationDays: 10, parallelGroup: "inicio" },
+    { name: "Entrevistas", description: "Entrevistas de todos los participantes del cliente", position: 3, defaultDurationDays: 14, parallelGroup: "inicio" },
+    { name: "Kick off", description: "Taller de propuesta de valor", position: 4, defaultDurationDays: 1 },
+    { name: "Landscape", description: "Mapeo competitivo y hallazgos", position: 5, defaultDurationDays: 14 },
+    { name: "Estrategia", description: "Posicionamiento y estrategia de marca", position: 6, defaultDurationDays: 14 },
+    { name: "Diseño", description: "Exploración y sistema visual", position: 7, defaultDurationDays: 14 },
+    { name: "Artes finales", description: "Aplicaciones, control de calidad y entrega", position: 8, defaultDurationDays: 10 },
   ];
 
   const stages: Stage[] = [];
@@ -70,26 +77,18 @@ async function main() {
   }
 
   const templates = [
-    ["Agendar entrevistas iniciales", "Entrevistas & Propuesta de Valor", operations.id, 0, 3],
-    ["Kickoff con cliente", "Entrevistas & Propuesta de Valor", commercial.id, 1, 5],
-    ["Sintetizar hallazgos de entrevistas", "Entrevistas & Propuesta de Valor", operations.id, 2, 8],
-    ["Definir propuesta de valor", "Entrevistas & Propuesta de Valor", commercial.id, 3, 12],
-    ["Mapear competidores directos", "Landscape", operations.id, 0, 10],
-    ["Recolectar referentes visuales", "Landscape", design.id, 2, 14],
-    ["Identificar territorios de oportunidad", "Landscape", operations.id, 7, 21],
-    ["Presentar landscape al cliente", "Landscape", commercial.id, 20, 27],
-    ["Construir narrativa estrategica", "Brand Strategy", operations.id, 0, 7],
-    ["Definir personalidad y tono", "Brand Strategy", operations.id, 5, 15],
-    ["Alinear direccion creativa", "Brand Strategy", design.id, 10, 20],
-    ["Aprobar estrategia de marca", "Brand Strategy", commercial.id, 20, 29],
-    ["Disenar sistema visual", "Brand Design", design.id, 0, 7],
-    ["Preparar aplicaciones de marca", "Brand Design", design.id, 5, 12],
-    ["Organizar archivos finales", "Brand Design", operations.id, 8, 15],
-    ["Entregar Brand Design al cliente", "Brand Design", commercial.id, 12, 20],
+    ["Presentación de credenciales", "Comercial", commercial.id, 0, 1, false], ["Propuesta de precio", "Comercial", commercial.id, 2, 3, false], ["Cliente da el OK", "Comercial", commercial.id, 4, 4, true],
+    ["Envío de documentos", "Vinculación", operations.id, 0, 6, false], ["Primera factura", "Vinculación", operations.id, 7, 9, true],
+    ["Envío de link", "Entrevistas", commercial.id, 0, 0, false], ["Todos los participantes responden", "Entrevistas", commercial.id, 1, 13, true],
+    ["Taller de propuesta de valor", "Kick off", commercial.id, 0, 0, true],
+    ["Investigación secundaria / benchmark", "Landscape", operations.id, 0, 2, false], ["Análisis de competencia", "Landscape", operations.id, 3, 4, false], ["Entrevistas internas adicionales", "Landscape", operations.id, 5, 6, false], ["Documento de hallazgos", "Landscape", operations.id, 7, 10, true], ["Presentación a cliente", "Landscape", operations.id, 11, 13, true],
+    ["Posicionamiento y territorio de marca", "Estrategia", commercial.id, 0, 2, false], ["Arquetipos / buyer personas", "Estrategia", commercial.id, 3, 4, false], ["Mensajes clave", "Estrategia", commercial.id, 5, 6, false], ["Documento de estrategia", "Estrategia", commercial.id, 7, 10, true], ["Presentación a cliente", "Estrategia", commercial.id, 11, 13, true],
+    ["Moodboard / exploración visual", "Diseño", design.id, 0, 2, false], ["Primeras propuestas", "Diseño", design.id, 3, 6, false], ["Revisión interna", "Diseño", design.id, 7, 7, false], ["Presentación de propuestas al cliente", "Diseño", design.id, 8, 8, true], ["Ronda de ajustes", "Diseño", design.id, 9, 13, true],
+    ["Aplicaciones de marca según alcance", "Artes finales", design.id, 0, 6, false], ["Control de calidad / consistencia", "Artes finales", design.id, 7, 8, true], ["Entrega de archivos finales al cliente", "Artes finales", design.id, 9, 9, true],
   ] as const;
 
   for (const [index, template] of templates.entries()) {
-    const [title, stageName, teamId, startOffsetDays, dueOffsetDays] = template;
+      const [title, stageName, teamId, startOffsetDays, dueOffsetDays, blocksPhaseCompletion] = template;
     const stage = stages.find((candidate) => candidate.name === stageName);
     if (!stage) continue;
     await prisma.taskTemplate.create({
@@ -100,6 +99,8 @@ async function main() {
         defaultAssignedTeamId: teamId,
         startOffsetDays,
         dueOffsetDays,
+        estimatedDurationDays: dueOffsetDays - startOffsetDays + 1,
+        blocksPhaseCompletion,
         sortOrder: index,
       },
     });
@@ -197,6 +198,8 @@ async function main() {
           assignedTeamId: template.defaultAssignedTeamId ?? input.teamId,
           startDate: addDays(clientStage.plannedStartDate, template.startOffsetDays),
           dueDate: addDays(clientStage.plannedStartDate, template.dueOffsetDays),
+          estimatedDurationDays: template.estimatedDurationDays,
+          blocksPhaseCompletion: template.blocksPhaseCompletion,
           completedAt: status === TaskStatus.COMPLETED ? clientStage.actualEndDate ?? new Date() : null,
           sortOrder: template.sortOrder,
           createdById: admin.id,
@@ -218,12 +221,12 @@ async function main() {
     return client;
   }
 
-  await createClient({ name: "Acme Corp", companyName: "Acme Corp", startDate: date("2026-08-21"), activePosition: 1, ownerId: laura.id, teamId: operations.id });
-  await createClient({ name: "Nova Retail", companyName: "Nova Retail", startDate: date("2026-07-22"), activePosition: 2, ownerId: camila.id, teamId: operations.id });
-  await createClient({ name: "Andes Studio", companyName: "Andes Studio", startDate: date("2026-07-01"), activePosition: 2, ownerId: juan.id, teamId: design.id, delayed: true });
-  await createClient({ name: "Lima Foods", companyName: "Lima Foods", startDate: date("2026-06-15"), activePosition: 3, ownerId: sofia.id, teamId: commercial.id });
-  await createClient({ name: "Cali Health", companyName: "Cali Health", startDate: date("2026-05-28"), activePosition: 4, ownerId: laura.id, teamId: operations.id });
-  await createClient({ name: "Bogota Legal", companyName: "Bogota Legal", startDate: date("2026-05-01"), activePosition: 4, ownerId: camila.id, teamId: operations.id, completed: true });
+  await createClient({ name: "Acme Corp", companyName: "Acme Corp", startDate: date("2026-08-21"), activePosition: 1, ownerId: carlos.id, teamId: commercial.id });
+  await createClient({ name: "Nova Retail", companyName: "Nova Retail", startDate: date("2026-07-22"), activePosition: 5, ownerId: isabel.id, teamId: operations.id });
+  await createClient({ name: "Andes Studio", companyName: "Andes Studio", startDate: date("2026-07-01"), activePosition: 5, ownerId: isabel.id, teamId: operations.id, delayed: true });
+  await createClient({ name: "Lima Foods", companyName: "Lima Foods", startDate: date("2026-06-15"), activePosition: 6, ownerId: lina.id, teamId: commercial.id });
+  await createClient({ name: "Cali Health", companyName: "Cali Health", startDate: date("2026-05-28"), activePosition: 7, ownerId: victor.id, teamId: design.id });
+  await createClient({ name: "Bogota Legal", companyName: "Bogota Legal", startDate: date("2026-05-01"), activePosition: 8, ownerId: yudi.id, teamId: operations.id, completed: true });
 
   console.log("Seed complete. Login with admin@mellow.local / mellow123");
 }
