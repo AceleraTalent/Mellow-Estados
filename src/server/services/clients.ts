@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { buildPlannedTimeline } from "@/server/domain/timeline";
 import { getStageHealth, getStageTiming } from "@/server/domain/health";
-import { taskCounts } from "@/server/domain/progress";
+import { projectProgress, taskCounts } from "@/server/domain/progress";
 import { canViewClient } from "@/server/auth";
 
 export type ClientListFilters = {
@@ -44,6 +44,7 @@ export async function getClientList(user: { id: string; role: UserRole; teamId: 
       owner: true,
       team: true,
       currentClientStage: { include: { stage: true, tasks: { where: { archivedAt: null } } } },
+      stages: { include: { tasks: { where: { archivedAt: null } } }, orderBy: { position: "asc" } },
       tasks: { where: { archivedAt: null } },
       activities: { orderBy: { createdAt: "desc" }, take: 1, include: { actor: true } },
     },
@@ -77,7 +78,7 @@ export async function getClientList(user: { id: string; role: UserRole; teamId: 
       currentStage: current,
       stage: current?.stage,
       stageProgress: stageCounts.progress,
-      clientProgress: clientCounts.progress,
+      clientProgress: projectProgress(client.stages, current?.id),
       openTasks: clientCounts.pending,
       health,
       timing,
@@ -325,6 +326,40 @@ export async function advanceClientStage(input: { actorId: string; clientId: str
     return { advanced: true, clientId: client.id };
   });
 
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${input.clientId}`);
+  revalidatePath("/dashboard");
+  return result;
+}
+
+/** Set the current pointer explicitly from the client detail stepper. */
+export async function setCurrentClientStage(input: { actorId: string; clientId: string; targetClientStageId: string }) {
+  const result = await prisma.$transaction(async (tx) => {
+    const client = await tx.client.findUnique({
+      where: { id: input.clientId },
+      include: { currentClientStage: { include: { stage: true } }, stages: { include: { stage: true }, orderBy: { position: "asc" } } },
+    });
+    if (!client || !client.currentClientStage) throw new Error("Client or active stage not found");
+    const target = client.stages.find((stage) => stage.id === input.targetClientStageId);
+    if (!target) throw new Error("Target stage does not belong to this client");
+    if (target.id === client.currentClientStage.id) return { clientId: client.id, stageName: target.stage.name };
+
+    const now = new Date();
+    // Earlier milestones become complete. Later milestones deliberately keep
+    // their data/status when moving backwards, as requested.
+    await Promise.all(client.stages.filter((stage) => stage.position < target.position).map((stage) =>
+      tx.clientStage.update({ where: { id: stage.id }, data: { status: ClientStageStatus.COMPLETED, actualEndDate: stage.actualEndDate ?? now, completedAt: stage.completedAt ?? now } }),
+    ));
+    await tx.clientStage.update({
+      where: { id: target.id },
+      data: { status: ClientStageStatus.ACTIVE, actualStartDate: target.actualStartDate ?? now },
+    });
+    await tx.client.update({ where: { id: client.id }, data: { currentClientStageId: target.id, status: ClientStatus.ACTIVE } });
+    await tx.activityLog.create({
+      data: { actorId: input.actorId, action: "CLIENT_STAGE_SET", entityType: EntityType.CLIENT_STAGE, entityId: target.id, clientId: client.id, clientStageId: target.id, previousValue: { stage: client.currentClientStage.stage.name }, newValue: { stage: target.stage.name } },
+    });
+    return { clientId: client.id, stageName: target.stage.name };
+  });
   revalidatePath("/clients");
   revalidatePath(`/clients/${input.clientId}`);
   revalidatePath("/dashboard");

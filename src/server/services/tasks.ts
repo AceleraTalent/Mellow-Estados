@@ -110,6 +110,7 @@ export async function createTask(input: {
   revalidatePath("/tasks");
   revalidatePath(`/clients/${input.clientId}`);
   revalidatePath("/clients");
+  revalidatePath("/dashboard");
   return task;
 }
 
@@ -167,6 +168,7 @@ export async function updateTask(input: {
   revalidatePath("/tasks");
   revalidatePath(`/clients/${result.clientId}`);
   revalidatePath("/clients");
+  revalidatePath("/dashboard");
   return result;
 }
 

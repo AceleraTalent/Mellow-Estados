@@ -17,13 +17,14 @@ export function PriorityBadge({ value }: { value: TaskPriority }) {
   return <span className={`badge ${className}`}>{value.toLowerCase()}</span>;
 }
 
-export function Progress({ value }: { value: number }) {
+export function Progress({ value, variant }: { value: number; variant?: "large" }) {
+  const safeValue = Math.min(100, Math.max(0, value));
   return (
     <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
-      <div className="progress">
-        <span style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      <div className={`progress ${variant === "large" ? "progress-large" : ""}`}>
+        <span style={{ width: `${safeValue}%` }} />
       </div>
-      <span className="muted">{value}%</span>
+      <span className="muted">{safeValue}%</span>
     </div>
   );
 }

@@ -56,19 +56,12 @@ async function main() {
   ]);
 
   const stageData = [
-    {
-      name: "Comercial",
-      description: "Credenciales, propuesta de precio y aprobación del cliente",
-      position: 1,
-      defaultDurationDays: 5,
-    },
-    { name: "Vinculación", description: "Documentos y primera factura", position: 2, defaultDurationDays: 10, parallelGroup: "inicio" },
-    { name: "Entrevistas", description: "Entrevistas de todos los participantes del cliente", position: 3, defaultDurationDays: 14, parallelGroup: "inicio" },
-    { name: "Kick off", description: "Taller de propuesta de valor", position: 4, defaultDurationDays: 1 },
-    { name: "Landscape", description: "Mapeo competitivo y hallazgos", position: 5, defaultDurationDays: 14 },
-    { name: "Estrategia", description: "Posicionamiento y estrategia de marca", position: 6, defaultDurationDays: 14 },
-    { name: "Diseño", description: "Exploración y sistema visual", position: 7, defaultDurationDays: 14 },
-    { name: "Artes finales", description: "Aplicaciones, control de calidad y entrega", position: 8, defaultDurationDays: 10 },
+    { name: "Kickoff", description: "Alineación inicial y definición del proyecto", position: 1, defaultDurationDays: 5 },
+    { name: "Landscape", description: "Mapeo competitivo y hallazgos", position: 2, defaultDurationDays: 14 },
+    { name: "Estrategia", description: "Posicionamiento y estrategia de marca", position: 3, defaultDurationDays: 14 },
+    { name: "Naming", description: "Exploración, selección y validación de nombre", position: 4, defaultDurationDays: 10 },
+    { name: "Diseño", description: "Exploración y sistema visual", position: 5, defaultDurationDays: 14 },
+    { name: "Entregables", description: "Aplicaciones, control de calidad y entrega", position: 6, defaultDurationDays: 10 },
   ];
 
   const stages: Stage[] = [];
@@ -77,14 +70,12 @@ async function main() {
   }
 
   const templates = [
-    ["Presentación de credenciales", "Comercial", commercial.id, 0, 1, false], ["Propuesta de precio", "Comercial", commercial.id, 2, 3, false], ["Cliente da el OK", "Comercial", commercial.id, 4, 4, true],
-    ["Envío de documentos", "Vinculación", operations.id, 0, 6, false], ["Primera factura", "Vinculación", operations.id, 7, 9, true],
-    ["Envío de link", "Entrevistas", commercial.id, 0, 0, false], ["Todos los participantes responden", "Entrevistas", commercial.id, 1, 13, true],
-    ["Taller de propuesta de valor", "Kick off", commercial.id, 0, 0, true],
+    ["Alineación de objetivos", "Kickoff", commercial.id, 0, 1, false], ["Definir alcance", "Kickoff", commercial.id, 2, 3, false], ["Kickoff con cliente", "Kickoff", commercial.id, 4, 4, true],
     ["Investigación secundaria / benchmark", "Landscape", operations.id, 0, 2, false], ["Análisis de competencia", "Landscape", operations.id, 3, 4, false], ["Entrevistas internas adicionales", "Landscape", operations.id, 5, 6, false], ["Documento de hallazgos", "Landscape", operations.id, 7, 10, true], ["Presentación a cliente", "Landscape", operations.id, 11, 13, true],
     ["Posicionamiento y territorio de marca", "Estrategia", commercial.id, 0, 2, false], ["Arquetipos / buyer personas", "Estrategia", commercial.id, 3, 4, false], ["Mensajes clave", "Estrategia", commercial.id, 5, 6, false], ["Documento de estrategia", "Estrategia", commercial.id, 7, 10, true], ["Presentación a cliente", "Estrategia", commercial.id, 11, 13, true],
+    ["Territorios de nombre", "Naming", commercial.id, 0, 2, false], ["Validación de disponibilidad", "Naming", operations.id, 3, 5, false], ["Selección de nombre", "Naming", commercial.id, 6, 9, true],
     ["Moodboard / exploración visual", "Diseño", design.id, 0, 2, false], ["Primeras propuestas", "Diseño", design.id, 3, 6, false], ["Revisión interna", "Diseño", design.id, 7, 7, false], ["Presentación de propuestas al cliente", "Diseño", design.id, 8, 8, true], ["Ronda de ajustes", "Diseño", design.id, 9, 13, true],
-    ["Aplicaciones de marca según alcance", "Artes finales", design.id, 0, 6, false], ["Control de calidad / consistencia", "Artes finales", design.id, 7, 8, true], ["Entrega de archivos finales al cliente", "Artes finales", design.id, 9, 9, true],
+    ["Aplicaciones de marca según alcance", "Entregables", design.id, 0, 6, false], ["Control de calidad / consistencia", "Entregables", design.id, 7, 8, true], ["Entrega de archivos finales al cliente", "Entregables", design.id, 9, 9, true],
   ] as const;
 
   for (const [index, template] of templates.entries()) {

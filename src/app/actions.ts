@@ -3,7 +3,7 @@
 import { TaskPriority, TaskStatus, UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireUser } from "@/server/auth";
-import { createClientWithTimeline, advanceClientStage } from "@/server/services/clients";
+import { createClientWithTimeline, advanceClientStage, setCurrentClientStage } from "@/server/services/clients";
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { createTask, moveTask, updateTask } from "@/server/services/tasks";
@@ -47,6 +47,11 @@ export async function advanceClientFromBoard(clientId: string, targetClientStage
     targetClientStageId,
     confirmPendingTasks: true,
   });
+}
+
+export async function setCurrentClientStageAction(clientId: string, targetClientStageId: string) {
+  const user = await requireAdmin();
+  return setCurrentClientStage({ actorId: user.id, clientId, targetClientStageId });
 }
 
 export async function createTaskAction(formData: FormData) {

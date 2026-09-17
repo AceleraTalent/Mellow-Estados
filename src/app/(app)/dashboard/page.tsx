@@ -4,7 +4,7 @@ import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth";
 import { getClientList } from "@/server/services/clients";
 import { formatDate } from "@/server/domain/dates";
-import { HealthBadge } from "@/components/badges";
+import { HealthBadge, Progress } from "@/components/badges";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -29,12 +29,12 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <section className="grid metrics">
-        <div className="panel metric"><span className="muted">Active clients</span><strong>{activeClients.length}</strong></div>
-        <div className="panel metric"><span className="muted">On track</span><strong>{clients.filter((c) => c.health === "On track").length}</strong></div>
-        <div className="panel metric"><span className="muted">Delayed</span><strong>{delayed.length}</strong></div>
-        <div className="panel metric"><span className="muted">Pending tasks</span><strong>{tasksPending}</strong></div>
-        <div className="panel metric"><span className="muted">Overdue tasks</span><strong>{tasksOverdue}</strong></div>
+      <section className="grid metrics dashboard-metrics">
+        <Link className="panel metric metric-link" href="/clients"><span className="muted">Active clients</span><strong>{activeClients.length}</strong><small>View active portfolio →</small></Link>
+        <Link className="panel metric metric-link" href="/clients?health=On%20track"><span className="muted">On track</span><strong>{clients.filter((c) => c.health === "On track").length}</strong><small>Projects moving well →</small></Link>
+        <Link className="panel metric metric-link metric-danger" href="/clients?health=Delayed"><span className="muted">Delayed</span><strong>{delayed.length}</strong><small>Needs a decision →</small></Link>
+        <Link className="panel metric metric-link" href="/tasks"><span className="muted">Pending tasks</span><strong>{tasksPending}</strong><small>Review task queue →</small></Link>
+        <Link className="panel metric metric-link metric-danger" href="/tasks?view=overdue"><span className="muted">Overdue tasks</span><strong>{tasksOverdue}</strong><small>Resolve overdue work →</small></Link>
       </section>
 
       <section className="two-col" style={{ marginTop: 16 }}>
@@ -42,12 +42,12 @@ export default async function DashboardPage() {
           <h3>Needs attention</h3>
           <div className="grid">
             {[...delayed, ...dueSoon].slice(0, 8).map((client) => (
-              <Link href={`/clients/${client.id}`} key={client.id} className="panel panel-pad">
-                <strong>{client.name}</strong>
-                <p className="muted" style={{ margin: "6px 0" }}>
-                  {client.stage?.name} · {client.timing.dayLabel} · deadline {formatDate(client.deadline)}
-                </p>
-                <HealthBadge value={client.health} />
+              <Link href={`/clients/${client.id}`} key={client.id} className="attention-card">
+                <div><strong>{client.name}</strong><strong>{client.clientProgress}%</strong></div>
+                <p>{client.stage?.name ?? "No active stage"}</p>
+                <Progress value={client.clientProgress} />
+                <div className="attention-meta"><HealthBadge value={client.health} /><span>Deadline {formatDate(client.deadline)}</span></div>
+                <small>{client.timing.dayLabel} in stage · View client →</small>
               </Link>
             ))}
             {delayed.length + dueSoon.length === 0 ? <p className="muted">No clients need attention today.</p> : null}

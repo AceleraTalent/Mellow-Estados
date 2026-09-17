@@ -7,10 +7,11 @@ import { prisma } from "@/server/db";
 import { getClientDetail } from "@/server/services/clients";
 import { formatDate } from "@/server/domain/dates";
 import { getStageHealth, getStageTiming } from "@/server/domain/health";
-import { taskCounts } from "@/server/domain/progress";
+import { projectProgress, taskCounts } from "@/server/domain/progress";
 import { HealthBadge, PriorityBadge, Progress, TaskStatusBadge } from "@/components/badges";
 import { TaskCompleteCheckbox } from "@/components/tasks/task-complete-checkbox";
 import { TrafficGantt } from "@/components/clients/traffic-gantt";
+import { ClientStageExperience } from "@/components/clients/client-stage-experience";
 import { advanceClientAction, createTaskAction, updateStageDelayReasonAction } from "@/app/actions";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +24,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const teams = await prisma.team.findMany({ where: { active: true }, orderBy: { name: "asc" } });
   const current = client.currentClientStage;
   const currentCounts = taskCounts(current?.tasks ?? []);
-  const clientCounts = taskCounts(client.tasks);
+  const clientProgress = projectProgress(client.stages, current?.id);
   const currentTiming = current
     ? getStageTiming({
         actualStartDate: current.actualStartDate,
@@ -44,18 +45,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <Link className="button secondary" href="/clients">Back to clients</Link>
       </div>
 
-      <section className="grid metrics">
-        <div className="panel metric"><span className="muted">Started</span><strong style={{ fontSize: 18 }}>{formatDate(client.startDate)}</strong></div>
-        <div className="panel metric"><span className="muted">Expected completion</span><strong style={{ fontSize: 18 }}>{formatDate(client.stages.at(-1)?.plannedEndDate)}</strong></div>
-        <div className="panel metric"><span className="muted">Current stage</span><strong style={{ fontSize: 18 }}>{current?.stage.name ?? "-"}</strong></div>
-        <div className="panel metric"><span className="muted">Overall progress</span><strong style={{ fontSize: 18 }}>{clientCounts.progress}%</strong></div>
-        <div className="panel metric"><span className="muted">Health</span><strong style={{ fontSize: 18 }}><HealthBadge value={health} /></strong></div>
+      <section className="panel client-hero">
+        <div className="client-facts"><HealthBadge value={health} /><span>Started {formatDate(client.startDate)}</span><span>Deadline {formatDate(client.stages.at(-1)?.plannedEndDate)}</span><span>Current stage: <strong>{current?.stage.name ?? "-"}</strong></span></div>
+        <ClientStageExperience clientId={client.id} stages={client.stages} currentStageId={current?.id} health={health} progress={clientProgress} />
       </section>
 
       <div style={{ marginTop: 16 }}><TrafficGantt stages={client.stages} /></div>
 
       <section className="two-col" style={{ marginTop: 16 }}>
-        <div className="panel panel-pad">
+        <div className="panel panel-pad task-table-panel">
           <h3>Tasks</h3>
           <div className="table-wrap">
             <table className="table">

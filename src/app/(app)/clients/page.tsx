@@ -51,39 +51,17 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         <button className="button secondary" type="submit">Apply</button>
       </form>
 
-      <section className="panel table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Stage</th>
-              <th>Stage progress</th>
-              <th>Time in stage</th>
-              <th>Deadline</th>
-              <th>Client progress</th>
-              <th>Owner</th>
-              <th>Team</th>
-              <th>Open tasks</th>
-              <th>Health</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((client) => (
-              <tr key={client.id}>
-                <td><Link href={`/clients/${client.id}`}><strong>{client.name}</strong><br /><span className="muted">{client.companyName}</span></Link></td>
-                <td>{client.stage?.name ?? "-"}</td>
-                <td><Progress value={client.stageProgress} /></td>
-                <td><strong>{client.timing.dayLabel}</strong><br /><span className="muted">{client.timing.label}</span></td>
-                <td>{formatDate(client.deadline)}</td>
-                <td><Progress value={client.clientProgress} /></td>
-                <td>{client.owner?.name ?? "-"}</td>
-                <td>{client.team?.name ?? "-"}</td>
-                <td>{client.openTasks}</td>
-                <td><HealthBadge value={client.health} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <section className="client-card-grid">
+        {clients.map((client) => (
+          <Link href={`/clients/${client.id}`} className="client-list-card" key={client.id}>
+            <div className="client-card-title"><div><strong>{client.name}</strong><span>{client.companyName}</span></div><strong>{client.clientProgress}%</strong></div>
+            <p>{client.stage?.name ?? "No active stage"}</p>
+            <Progress value={client.clientProgress} />
+            <div className="client-card-footer"><span>{client.stageProgress}% of current stage</span><span>{client.openTasks} open tasks</span></div>
+            <div className="client-card-meta"><HealthBadge value={client.health} /><span>Deadline {formatDate(client.deadline)}</span></div>
+          </Link>
+        ))}
+        {!clients.length ? <div className="panel panel-pad muted">No clients match these filters.</div> : null}
       </section>
 
       <section className="panel panel-pad" style={{ marginTop: 16 }}>
